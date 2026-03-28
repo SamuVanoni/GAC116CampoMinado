@@ -1,0 +1,82 @@
+:root {
+    --bg-color: #121212;
+    --container-bg: #1e1e1e;
+    --cell-bg: #2c2c2c;
+    --cell-hover: #3a3a3a;
+    --text-color: #e0e0e0;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+}
+
+.game-container {
+    background-color: var(--container-bg);
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 25px;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+h2 {
+    margin: 0;
+    font-size: 1.8rem;
+    letter-spacing: 1px;
+}
+
+.btn {
+    background-color: var(--cell-bg);
+    color: var(--text-color);
+    border: 1px solid #444;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.btn:hover {
+    background-color: var(--cell-hover);
+}
+
+/* O grid é fixo em 8 colunas para esta primeira fase */
+.board {
+    display: grid;
+    grid-template-columns: repeat(8, 35px);
+    gap: 2px;
+    background-color: #444;
+    border: 2px solid #444;
+    border-radius: 6px;
+}
+
+.cell {
+    width: 35px;
+    height: 35px;
+    background-color: var(--cell-bg);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background-color 0.1s;
+}
+
+/* Efeito de passar o mouse em cima para mostrar que é clicável */
+.cell:hover {
+    background-color: var(--cell-hover);
+}
