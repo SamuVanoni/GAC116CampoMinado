@@ -98,3 +98,15 @@ h2 {
 .cell[data-value="1"] { color: #8ab4f8; }
 .cell[data-value="2"] { color: #81c995; }
 .cell[data-value="3"] { color: #f28b82; }
+
+/* Estilo para o contador de bombas/bandeiras */
+.status-bar {
+    background-color: #333;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 5px;
+}

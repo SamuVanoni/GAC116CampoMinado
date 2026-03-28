@@ -1,35 +1,45 @@
-// Configurações fixas para esta fase (8x8 com 10 bombas)
 const ROWS = 8;
 const COLS = 8;
 const BOMBS = 10;
 
-// Variáveis de controle do jogo
+// Variáveis de controlo do jogo
 let board = [];
 let gameOver = false;
 let firstClick = true;
 let cellsRevealed = 0;
+let flagsLeft = BOMBS; // NOVA: Controla quantas bandeiras restam
 
 // Elementos do HTML
 const boardEl = document.getElementById('board');
 const btnRestart = document.getElementById('btn-restart');
+const minesLeftEl = document.getElementById('mines-left'); // NOVO: Elemento do contador
 
 // 1. Inicia ou reinicia a partida
 function initGame() {
     gameOver = false;
     firstClick = true;
     cellsRevealed = 0;
+    flagsLeft = BOMBS; // Repõe as bandeiras
+    
+    if(minesLeftEl) minesLeftEl.textContent = flagsLeft; // Atualiza o texto no ecrã
+    
     board = [];
-    boardEl.innerHTML = ''; // Limpa o tabuleiro visual
+    boardEl.innerHTML = ''; 
 
-    // Cria a matriz lógica e os elementos visuais
     for (let r = 0; r < ROWS; r++) {
         let row = [];
         for (let c = 0; c < COLS; c++) {
             const cell = document.createElement('div');
             cell.classList.add('cell');
             
-            // Evento de clique para revelar a célula
+            // Evento: Clique Esquerdo (Revelar)
             cell.addEventListener('click', () => handleCellClick(r, c));
+            
+            // NOVO Evento: Clique Direito (Colocar Bandeira)
+            cell.addEventListener('contextmenu', (e) => {
+                e.preventDefault(); // Impede que o menu padrão do navegador apareça
+                toggleFlagCell(r, c);
+            });
 
             boardEl.appendChild(cell);
             
@@ -37,6 +47,7 @@ function initGame() {
                 element: cell,
                 isBomb: false,
                 isRevealed: false,
+                isFlagged: false, // NOVA: Propriedade para saber se tem bandeira
                 neighborBombs: 0
             });
         }
@@ -44,15 +55,12 @@ function initGame() {
     }
 }
 
-// 2. Espalha as bombas (garantindo que o 1º clique seja seguro)
 function placeBombs(excludeRow, excludeCol) {
     let bombsPlaced = 0;
-    
     while (bombsPlaced < BOMBS) {
         let r = Math.floor(Math.random() * ROWS);
         let c = Math.floor(Math.random() * COLS);
         
-        // Evita colocar bomba no local do primeiro clique ou onde já tem bomba
         if (!board[r][c].isBomb && !(r === excludeRow && c === excludeCol)) {
             board[r][c].isBomb = true;
             bombsPlaced++;
@@ -61,14 +69,11 @@ function placeBombs(excludeRow, excludeCol) {
     calculateNeighbors();
 }
 
-// 3. Calcula quantas bombas existem ao redor de cada célula segura
 function calculateNeighbors() {
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             if (board[r][c].isBomb) continue;
-            
             let count = 0;
-            // Checa os 8 vizinhos
             for (let i = -1; i <= 1; i++) {
                 for (let j = -1; j <= 1; j++) {
                     let nr = r + i, nc = c + j;
@@ -82,45 +87,66 @@ function calculateNeighbors() {
     }
 }
 
-// 4. Lida com o clique do jogador
+// Lida com o clique do jogador
 function handleCellClick(r, c) {
     if (gameOver || board[r][c].isRevealed) return;
 
-    // No primeiro clique, gera as bombas
+    // NOVO: Se a célula tiver uma bandeira, o clique esquerdo não faz nada!
+    if (board[r][c].isFlagged) return;
+
     if (firstClick) {
         firstClick = false;
         placeBombs(r, c);
     }
 
-    // Se clicou na bomba, perdeu
     if (board[r][c].isBomb) {
         triggerGameOver(false);
         return;
     }
 
-    // Se é segura, revela e checa se ganhou
     revealCell(r, c);
     checkWin();
 }
 
-// 5. Revela a célula (e as vizinhas se for vazia - Flood Fill)
+// NOVA FUNÇÃO: Colocar ou retirar a bandeira
+function toggleFlagCell(r, c) {
+    if (gameOver || board[r][c].isRevealed) return;
+    
+    const cellObj = board[r][c];
+
+    // Se não tem bandeira e ainda temos bandeiras disponíveis
+    if (!cellObj.isFlagged && flagsLeft > 0) {
+        cellObj.isFlagged = true;
+        cellObj.element.textContent = '🚩';
+        flagsLeft--;
+    } 
+    // Se já tem bandeira, removemos
+    else if (cellObj.isFlagged) {
+        cellObj.isFlagged = false;
+        cellObj.element.textContent = '';
+        flagsLeft++;
+    }
+    
+    // Atualiza o contador visual
+    minesLeftEl.textContent = flagsLeft;
+}
+
 function revealCell(r, c) {
-    // Para se sair dos limites ou se já estiver revelada
     if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
     
     const cellObj = board[r][c];
-    if (cellObj.isRevealed) return;
+    
+    // NOVO: Impede que o "Flood Fill" abra células com bandeiras
+    if (cellObj.isRevealed || cellObj.isFlagged) return;
 
     cellObj.isRevealed = true;
     cellObj.element.classList.add('revealed');
     cellsRevealed++;
 
-    // Mostra o número de bombas ao redor, se houver
     if (cellObj.neighborBombs > 0) {
         cellObj.element.textContent = cellObj.neighborBombs;
         cellObj.element.dataset.value = cellObj.neighborBombs;
     } else {
-        // Se for 0, abre os vizinhos automaticamente
         for (let i = -1; i <= 1; i++) {
             for (let j = -1; j <= 1; j++) {
                 revealCell(r + i, c + j);
@@ -129,11 +155,9 @@ function revealCell(r, c) {
     }
 }
 
-// 6. Fim de jogo (Mostra as bombas se perder)
 function triggerGameOver(win) {
     gameOver = true;
     
-    // Revela todas as bombas
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             if (board[r][c].isBomb) {
@@ -144,13 +168,12 @@ function triggerGameOver(win) {
     }
 
     if (win) {
-        setTimeout(() => alert('Parabéns! Você venceu!'), 100);
+        setTimeout(() => alert('Parabéns! Venceste a partida!'), 100);
     } else {
-        setTimeout(() => alert('BUM! Game Over!'), 100);
+        setTimeout(() => alert('BUM! Fim de Jogo!'), 100);
     }
 }
 
-// 7. Checa se todas as células seguras foram abertas
 function checkWin() {
     const totalSafeCells = (ROWS * COLS) - BOMBS;
     if (cellsRevealed === totalSafeCells) {
@@ -158,6 +181,5 @@ function checkWin() {
     }
 }
 
-// Inicia o jogo ao carregar a página e configura o botão de reiniciar
 btnRestart.addEventListener('click', initGame);
 initGame();
