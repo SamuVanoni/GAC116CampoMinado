@@ -1,30 +1,46 @@
-const ROWS = 8;
-const COLS = 8;
-const BOMBS = 10;
+// NOVA: Configurações das 3 dificuldades
+const difficulties = {
+    easy: { rows: 8, cols: 8, bombs: 10 },
+    medium: { rows: 16, cols: 16, bombs: 40 },
+    hard: { rows: 16, cols: 30, bombs: 99 }
+};
 
-// Variáveis de controlo do jogo
+let currentDiff = 'easy'; // Dificuldade padrão
+let ROWS, COLS, BOMBS;    // Agora são variáveis que vão mudar
+
+// Variáveis de controle do jogo
 let board = [];
 let gameOver = false;
 let firstClick = true;
 let cellsRevealed = 0;
-let flagsLeft = BOMBS; // NOVA: Controla quantas bandeiras restam
+let flagsLeft = 0;
 
 // Elementos do HTML
 const boardEl = document.getElementById('board');
 const btnRestart = document.getElementById('btn-restart');
-const minesLeftEl = document.getElementById('mines-left'); // NOVO: Elemento do contador
+const minesLeftEl = document.getElementById('mines-left');
+const diffSelect = document.getElementById('difficulty'); // NOVO: Elemento do select
 
 // 1. Inicia ou reinicia a partida
 function initGame() {
+    // Aplica as configurações baseadas na dificuldade escolhida
+    const config = difficulties[currentDiff];
+    ROWS = config.rows;
+    COLS = config.cols;
+    BOMBS = config.bombs;
+
     gameOver = false;
     firstClick = true;
     cellsRevealed = 0;
-    flagsLeft = BOMBS; // Repõe as bandeiras
+    flagsLeft = BOMBS; 
     
-    if(minesLeftEl) minesLeftEl.textContent = flagsLeft; // Atualiza o texto no ecrã
+    minesLeftEl.textContent = flagsLeft;
     
     board = [];
     boardEl.innerHTML = ''; 
+
+    // NOVA: Define o número de colunas do CSS Grid via JavaScript
+    boardEl.style.gridTemplateColumns = `repeat(${COLS}, 30px)`;
 
     for (let r = 0; r < ROWS; r++) {
         let row = [];
@@ -32,12 +48,10 @@ function initGame() {
             const cell = document.createElement('div');
             cell.classList.add('cell');
             
-            // Evento: Clique Esquerdo (Revelar)
             cell.addEventListener('click', () => handleCellClick(r, c));
             
-            // NOVO Evento: Clique Direito (Colocar Bandeira)
             cell.addEventListener('contextmenu', (e) => {
-                e.preventDefault(); // Impede que o menu padrão do navegador apareça
+                e.preventDefault(); 
                 toggleFlagCell(r, c);
             });
 
@@ -47,7 +61,7 @@ function initGame() {
                 element: cell,
                 isBomb: false,
                 isRevealed: false,
-                isFlagged: false, // NOVA: Propriedade para saber se tem bandeira
+                isFlagged: false, 
                 neighborBombs: 0
             });
         }
@@ -55,6 +69,7 @@ function initGame() {
     }
 }
 
+// (As funções placeBombs, calculateNeighbors, handleCellClick continuam iguais à Fase 3)
 function placeBombs(excludeRow, excludeCol) {
     let bombsPlaced = 0;
     while (bombsPlaced < BOMBS) {
@@ -87,12 +102,8 @@ function calculateNeighbors() {
     }
 }
 
-// Lida com o clique do jogador
 function handleCellClick(r, c) {
-    if (gameOver || board[r][c].isRevealed) return;
-
-    // NOVO: Se a célula tiver uma bandeira, o clique esquerdo não faz nada!
-    if (board[r][c].isFlagged) return;
+    if (gameOver || board[r][c].isRevealed || board[r][c].isFlagged) return;
 
     if (firstClick) {
         firstClick = false;
@@ -108,26 +119,21 @@ function handleCellClick(r, c) {
     checkWin();
 }
 
-// NOVA FUNÇÃO: Colocar ou retirar a bandeira
 function toggleFlagCell(r, c) {
     if (gameOver || board[r][c].isRevealed) return;
     
     const cellObj = board[r][c];
 
-    // Se não tem bandeira e ainda temos bandeiras disponíveis
     if (!cellObj.isFlagged && flagsLeft > 0) {
         cellObj.isFlagged = true;
         cellObj.element.textContent = '🚩';
         flagsLeft--;
-    } 
-    // Se já tem bandeira, removemos
-    else if (cellObj.isFlagged) {
+    } else if (cellObj.isFlagged) {
         cellObj.isFlagged = false;
         cellObj.element.textContent = '';
         flagsLeft++;
     }
     
-    // Atualiza o contador visual
     minesLeftEl.textContent = flagsLeft;
 }
 
@@ -135,8 +141,6 @@ function revealCell(r, c) {
     if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
     
     const cellObj = board[r][c];
-    
-    // NOVO: Impede que o "Flood Fill" abra células com bandeiras
     if (cellObj.isRevealed || cellObj.isFlagged) return;
 
     cellObj.isRevealed = true;
@@ -180,6 +184,12 @@ function checkWin() {
         triggerGameOver(true);
     }
 }
+
+// NOVA: Listener para quando o usuário trocar a dificuldade no dropdown
+diffSelect.addEventListener('change', (e) => {
+    currentDiff = e.target.value;
+    initGame(); // Reinicia o jogo inteiro com as novas regras
+});
 
 btnRestart.addEventListener('click', initGame);
 initGame();

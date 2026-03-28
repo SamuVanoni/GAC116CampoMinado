@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-PT">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Campo Minado Dark - Fase 3</title>
+    <title>Campo Minado</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,11 +11,18 @@
         <div class="header">
             <h2>Campo Minado</h2>
             
+            <div class="controls">
+                <select id="difficulty">
+                    <option value="easy">Fácil (8x8)</option>
+                    <option value="medium">Médio (16x16)</option>
+                    <option value="hard">Difícil (16x30)</option>
+                </select>
+                <button id="btn-restart" class="btn">Nova Partida</button>
+            </div>
+            
             <div class="status-bar">
                 <span>💣 <span id="mines-left">10</span></span>
             </div>
-            
-            <button id="btn-restart" class="btn">Nova Partida</button>
         </div>
 
         <div id="board" class="board"></div>
