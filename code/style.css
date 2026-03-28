@@ -57,7 +57,6 @@ h2 {
     background-color: var(--cell-hover);
 }
 
-/* O grid é fixo em 8 colunas para esta primeira fase */
 .board {
     display: grid;
     grid-template-columns: repeat(8, 35px);
@@ -80,3 +79,22 @@ h2 {
 .cell:hover {
     background-color: var(--cell-hover);
 }
+
+.cell.revealed {
+    background-color: var(--bg-color); /* Fica mais escura quando aberta */
+    cursor: default;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.cell.bomb {
+    background-color: #cf6679; /* Vermelho para a bomba */
+    font-size: 1.2rem;
+}
+
+/* Cores básicas para os números */
+.cell[data-value="1"] { color: #8ab4f8; }
+.cell[data-value="2"] { color: #81c995; }
+.cell[data-value="3"] { color: #f28b82; }
