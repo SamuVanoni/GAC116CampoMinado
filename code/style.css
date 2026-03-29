@@ -103,12 +103,17 @@ select:hover {
 }
 
 .cell {
-    width: 30px; /* Reduzido de 35px para caber melhor os tabuleiros maiores */
-    height: 30px; 
+    width: 30px;
+    height: 30px;
     background-color: var(--cell-bg);
     border-radius: 2px;
     cursor: pointer;
     transition: background-color 0.1s;
+    
+    /* NOVA: Centraliza a bandeira E os números */
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 /* Efeito de passar o mouse em cima para mostrar que é clicável */
@@ -120,9 +125,6 @@ select:hover {
     background-color: var(--bg-color); /* Fica mais escura quando aberta */
     cursor: default;
     font-weight: bold;
-    display: flex;
-    justify-content: center;
-    align-items: center;
 }
 
 .cell.bomb {
