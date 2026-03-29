@@ -13,22 +13,23 @@ let gameOver = false;
 let firstClick = true;
 let cellsRevealed = 0;
 let flagsLeft = 0;
-
-// NOVA: Variáveis do cronômetro
 let timerInterval;
 let secondsElapsed = 0;
+
+// NOVA: Variável para controlar as dicas
+let hintsLeft = 3;
 
 // Elementos do HTML
 const boardEl = document.getElementById('board');
 const btnRestart = document.getElementById('btn-restart');
 const minesLeftEl = document.getElementById('mines-left');
 const diffSelect = document.getElementById('difficulty');
-const timerEl = document.getElementById('timer'); // NOVO
-const rankingList = document.getElementById('ranking-list'); // NOVO
+const timerEl = document.getElementById('timer');
+const rankingList = document.getElementById('ranking-list');
+const btnHint = document.getElementById('btn-hint'); // NOVO
 
 // 1. Inicia ou reinicia a partida
 function initGame() {
-    // Para o cronômetro anterior, se houver
     clearInterval(timerInterval);
     secondsElapsed = 0;
     timerEl.textContent = secondsElapsed;
@@ -42,6 +43,13 @@ function initGame() {
     firstClick = true;
     cellsRevealed = 0;
     flagsLeft = BOMBS; 
+    
+    // NOVA: Repõe as dicas ao iniciar
+    hintsLeft = 3;
+    if (btnHint) {
+        btnHint.textContent = `💡 Dica (${hintsLeft})`;
+        btnHint.disabled = false;
+    }
     
     minesLeftEl.textContent = flagsLeft;
     
@@ -74,7 +82,6 @@ function initGame() {
         board.push(row);
     }
 
-    // NOVA: Atualiza a lista de recordes sempre que iniciar
     updateRankingUI();
 }
 
@@ -110,7 +117,6 @@ function calculateNeighbors() {
     }
 }
 
-// NOVA: Inicia a contagem do tempo
 function startTimer() {
     timerInterval = setInterval(() => {
         secondsElapsed++;
@@ -124,7 +130,7 @@ function handleCellClick(r, c) {
     if (firstClick) {
         firstClick = false;
         placeBombs(r, c);
-        startTimer(); // NOVA: Começa a contar o tempo no primeiro clique
+        startTimer(); 
     }
 
     if (board[r][c].isBomb) {
@@ -178,7 +184,7 @@ function revealCell(r, c) {
 
 function triggerGameOver(win) {
     gameOver = true;
-    clearInterval(timerInterval); // NOVA: Para o relógio
+    clearInterval(timerInterval); 
     
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
@@ -191,7 +197,7 @@ function triggerGameOver(win) {
 
     if (win) {
         setTimeout(() => alert(`Parabéns! Venceste em ${secondsElapsed} segundos!`), 100);
-        saveRanking(); // NOVA: Salva o recorde se ganhar
+        saveRanking(); 
     } else {
         setTimeout(() => alert('BUM! Fim de Jogo!'), 100);
     }
@@ -204,15 +210,46 @@ function checkWin() {
     }
 }
 
-// NOVA: Sistema de Ranking LocalStorage
+// NOVA: Lógica do Botão de Dicas
+if (btnHint) {
+    btnHint.addEventListener('click', () => {
+        // Bloqueia se o jogo acabou, se ainda não deu o 1º clique ou se acabaram as dicas
+        if (gameOver || firstClick || hintsLeft <= 0) return;
+        
+        let safeCells = [];
+        
+        // Procura por todas as casas seguras, fechadas e sem bandeira
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                if (!board[r][c].isRevealed && !board[r][c].isBomb && !board[r][c].isFlagged) {
+                    safeCells.push({ r, c });
+                }
+            }
+        }
+
+        // Se encontrou alguma, revela uma aleatória
+        if (safeCells.length > 0) {
+            const randomSafe = safeCells[Math.floor(Math.random() * safeCells.length)];
+            revealCell(randomSafe.r, randomSafe.c);
+            checkWin(); 
+            
+            // Desconta a dica e atualiza o visual do botão
+            hintsLeft--;
+            btnHint.textContent = `💡 Dica (${hintsLeft})`;
+            
+            if (hintsLeft === 0) {
+                btnHint.disabled = true;
+                btnHint.textContent = '💡 Esgotado';
+            }
+        }
+    });
+}
+
 function saveRanking() {
     let rankings = JSON.parse(localStorage.getItem('minesweeper_ranking')) || { easy: [], medium: [], hard: [] };
     
-    // Adiciona o tempo atual e ordena do menor para o maior
     rankings[currentDiff].push(secondsElapsed);
     rankings[currentDiff].sort((a, b) => a - b);
-    
-    // Mantém apenas o Top 5
     rankings[currentDiff] = rankings[currentDiff].slice(0, 5);
     
     localStorage.setItem('minesweeper_ranking', JSON.stringify(rankings));

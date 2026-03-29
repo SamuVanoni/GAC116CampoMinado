@@ -193,3 +193,11 @@ select:hover {
 .ranking-section li:last-child {
     border-bottom: none;
 }
+
+/* Estilo para botões desativados (quando a dica acaba) */
+.btn:disabled {
+    background-color: #333;
+    color: #777;
+    cursor: not-allowed;
+    border-color: #333;
+}
