@@ -1,12 +1,11 @@
-// NOVA: Configurações das 3 dificuldades
 const difficulties = {
     easy: { rows: 8, cols: 8, bombs: 10 },
     medium: { rows: 16, cols: 16, bombs: 40 },
     hard: { rows: 16, cols: 30, bombs: 99 }
 };
 
-let currentDiff = 'easy'; // Dificuldade padrão
-let ROWS, COLS, BOMBS;    // Agora são variáveis que vão mudar
+let currentDiff = 'easy';
+let ROWS, COLS, BOMBS;
 
 // Variáveis de controle do jogo
 let board = [];
@@ -15,15 +14,25 @@ let firstClick = true;
 let cellsRevealed = 0;
 let flagsLeft = 0;
 
+// NOVA: Variáveis do cronômetro
+let timerInterval;
+let secondsElapsed = 0;
+
 // Elementos do HTML
 const boardEl = document.getElementById('board');
 const btnRestart = document.getElementById('btn-restart');
 const minesLeftEl = document.getElementById('mines-left');
-const diffSelect = document.getElementById('difficulty'); // NOVO: Elemento do select
+const diffSelect = document.getElementById('difficulty');
+const timerEl = document.getElementById('timer'); // NOVO
+const rankingList = document.getElementById('ranking-list'); // NOVO
 
 // 1. Inicia ou reinicia a partida
 function initGame() {
-    // Aplica as configurações baseadas na dificuldade escolhida
+    // Para o cronômetro anterior, se houver
+    clearInterval(timerInterval);
+    secondsElapsed = 0;
+    timerEl.textContent = secondsElapsed;
+
     const config = difficulties[currentDiff];
     ROWS = config.rows;
     COLS = config.cols;
@@ -38,8 +47,6 @@ function initGame() {
     
     board = [];
     boardEl.innerHTML = ''; 
-
-    // NOVA: Define o número de colunas do CSS Grid via JavaScript
     boardEl.style.gridTemplateColumns = `repeat(${COLS}, 30px)`;
 
     for (let r = 0; r < ROWS; r++) {
@@ -49,7 +56,6 @@ function initGame() {
             cell.classList.add('cell');
             
             cell.addEventListener('click', () => handleCellClick(r, c));
-            
             cell.addEventListener('contextmenu', (e) => {
                 e.preventDefault(); 
                 toggleFlagCell(r, c);
@@ -67,9 +73,11 @@ function initGame() {
         }
         board.push(row);
     }
+
+    // NOVA: Atualiza a lista de recordes sempre que iniciar
+    updateRankingUI();
 }
 
-// (As funções placeBombs, calculateNeighbors, handleCellClick continuam iguais à Fase 3)
 function placeBombs(excludeRow, excludeCol) {
     let bombsPlaced = 0;
     while (bombsPlaced < BOMBS) {
@@ -102,12 +110,21 @@ function calculateNeighbors() {
     }
 }
 
+// NOVA: Inicia a contagem do tempo
+function startTimer() {
+    timerInterval = setInterval(() => {
+        secondsElapsed++;
+        timerEl.textContent = secondsElapsed;
+    }, 1000);
+}
+
 function handleCellClick(r, c) {
     if (gameOver || board[r][c].isRevealed || board[r][c].isFlagged) return;
 
     if (firstClick) {
         firstClick = false;
         placeBombs(r, c);
+        startTimer(); // NOVA: Começa a contar o tempo no primeiro clique
     }
 
     if (board[r][c].isBomb) {
@@ -161,6 +178,7 @@ function revealCell(r, c) {
 
 function triggerGameOver(win) {
     gameOver = true;
+    clearInterval(timerInterval); // NOVA: Para o relógio
     
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
@@ -172,7 +190,8 @@ function triggerGameOver(win) {
     }
 
     if (win) {
-        setTimeout(() => alert('Parabéns! Venceste a partida!'), 100);
+        setTimeout(() => alert(`Parabéns! Venceste em ${secondsElapsed} segundos!`), 100);
+        saveRanking(); // NOVA: Salva o recorde se ganhar
     } else {
         setTimeout(() => alert('BUM! Fim de Jogo!'), 100);
     }
@@ -185,10 +204,42 @@ function checkWin() {
     }
 }
 
-// NOVA: Listener para quando o usuário trocar a dificuldade no dropdown
+// NOVA: Sistema de Ranking LocalStorage
+function saveRanking() {
+    let rankings = JSON.parse(localStorage.getItem('minesweeper_ranking')) || { easy: [], medium: [], hard: [] };
+    
+    // Adiciona o tempo atual e ordena do menor para o maior
+    rankings[currentDiff].push(secondsElapsed);
+    rankings[currentDiff].sort((a, b) => a - b);
+    
+    // Mantém apenas o Top 5
+    rankings[currentDiff] = rankings[currentDiff].slice(0, 5);
+    
+    localStorage.setItem('minesweeper_ranking', JSON.stringify(rankings));
+    updateRankingUI();
+}
+
+function updateRankingUI() {
+    let rankings = JSON.parse(localStorage.getItem('minesweeper_ranking')) || { easy: [], medium: [], hard: [] };
+    const currentRanking = rankings[currentDiff];
+    
+    rankingList.innerHTML = '';
+    
+    if (currentRanking.length === 0) {
+        rankingList.innerHTML = '<li>Nenhum recorde salvo nesta dificuldade.</li>';
+        return;
+    }
+
+    currentRanking.forEach((time, index) => {
+        const li = document.createElement('li');
+        li.textContent = `${index + 1}º Lugar: ${time}s`;
+        rankingList.appendChild(li);
+    });
+}
+
 diffSelect.addEventListener('change', (e) => {
     currentDiff = e.target.value;
-    initGame(); // Reinicia o jogo inteiro com as novas regras
+    initGame(); 
 });
 
 btnRestart.addEventListener('click', initGame);
