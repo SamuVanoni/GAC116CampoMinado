@@ -203,3 +203,9 @@ select:hover {
     cursor: not-allowed;
     border-color: #333;
 }
+
+.btn.active {
+    background-color: #bb86fc; /* Uma cor de destaque (roxo claro) */
+    color: #121212; /* Texto escuro para dar contraste */
+    border-color: #bb86fc;
+}

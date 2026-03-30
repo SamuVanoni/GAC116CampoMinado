@@ -15,9 +15,8 @@ let cellsRevealed = 0;
 let flagsLeft = 0;
 let timerInterval;
 let secondsElapsed = 0;
-
-// NOVA: Variável para controlar as dicas
 let hintsLeft = 3;
+let flagMode = false; // Controle do Modo Bandeira (Mobile)
 
 // Elementos do HTML
 const boardEl = document.getElementById('board');
@@ -26,13 +25,14 @@ const minesLeftEl = document.getElementById('mines-left');
 const diffSelect = document.getElementById('difficulty');
 const timerEl = document.getElementById('timer');
 const rankingList = document.getElementById('ranking-list');
-const btnHint = document.getElementById('btn-hint'); // NOVO
+const btnHint = document.getElementById('btn-hint');
+const btnFlag = document.getElementById('btn-flag'); // NOVO: Botão de Modo Bandeira
 
 // 1. Inicia ou reinicia a partida
 function initGame() {
     clearInterval(timerInterval);
     secondsElapsed = 0;
-    timerEl.textContent = secondsElapsed;
+    if (timerEl) timerEl.textContent = secondsElapsed;
 
     const config = difficulties[currentDiff];
     ROWS = config.rows;
@@ -43,43 +43,52 @@ function initGame() {
     firstClick = true;
     cellsRevealed = 0;
     flagsLeft = BOMBS; 
+    flagMode = false; // Garante que o modo bandeira comece desligado
     
-    // NOVA: Repõe as dicas ao iniciar
+    // Repõe as dicas ao iniciar
     hintsLeft = 3;
     if (btnHint) {
         btnHint.textContent = `💡 Dica (${hintsLeft})`;
         btnHint.disabled = false;
     }
+
+    // Reseta visual do botão de modo bandeira
+    if (btnFlag) {
+        btnFlag.classList.remove('active');
+        btnFlag.textContent = '🚩 Modo Bandeira: OFF';
+    }
     
-    minesLeftEl.textContent = flagsLeft;
+    if (minesLeftEl) minesLeftEl.textContent = flagsLeft;
     
     board = [];
-    boardEl.innerHTML = ''; 
-    boardEl.style.gridTemplateColumns = `repeat(${COLS}, 30px)`;
+    if (boardEl) {
+        boardEl.innerHTML = ''; 
+        boardEl.style.gridTemplateColumns = `repeat(${COLS}, 30px)`;
 
-    for (let r = 0; r < ROWS; r++) {
-        let row = [];
-        for (let c = 0; c < COLS; c++) {
-            const cell = document.createElement('div');
-            cell.classList.add('cell');
-            
-            cell.addEventListener('click', () => handleCellClick(r, c));
-            cell.addEventListener('contextmenu', (e) => {
-                e.preventDefault(); 
-                toggleFlagCell(r, c);
-            });
+        for (let r = 0; r < ROWS; r++) {
+            let row = [];
+            for (let c = 0; c < COLS; c++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                
+                cell.addEventListener('click', () => handleCellClick(r, c));
+                cell.addEventListener('contextmenu', (e) => {
+                    e.preventDefault(); 
+                    toggleFlagCell(r, c);
+                });
 
-            boardEl.appendChild(cell);
-            
-            row.push({
-                element: cell,
-                isBomb: false,
-                isRevealed: false,
-                isFlagged: false, 
-                neighborBombs: 0
-            });
+                boardEl.appendChild(cell);
+                
+                row.push({
+                    element: cell,
+                    isBomb: false,
+                    isRevealed: false,
+                    isFlagged: false, 
+                    neighborBombs: 0
+                });
+            }
+            board.push(row);
         }
-        board.push(row);
     }
 
     updateRankingUI();
@@ -120,12 +129,21 @@ function calculateNeighbors() {
 function startTimer() {
     timerInterval = setInterval(() => {
         secondsElapsed++;
-        timerEl.textContent = secondsElapsed;
+        if (timerEl) timerEl.textContent = secondsElapsed;
     }, 1000);
 }
 
 function handleCellClick(r, c) {
-    if (gameOver || board[r][c].isRevealed || board[r][c].isFlagged) return;
+    if (gameOver || board[r][c].isRevealed) return;
+
+    // Se o Modo Bandeira estiver ligado, o clique esquerdo coloca a bandeira!
+    if (flagMode) {
+        toggleFlagCell(r, c);
+        return;
+    }
+
+    // Se a célula já tem bandeira, impede de abrir sem querer no modo normal
+    if (board[r][c].isFlagged) return;
 
     if (firstClick) {
         firstClick = false;
@@ -157,7 +175,7 @@ function toggleFlagCell(r, c) {
         flagsLeft++;
     }
     
-    minesLeftEl.textContent = flagsLeft;
+    if (minesLeftEl) minesLeftEl.textContent = flagsLeft;
 }
 
 function revealCell(r, c) {
@@ -210,15 +228,13 @@ function checkWin() {
     }
 }
 
-// NOVA: Lógica do Botão de Dicas
+// Lógica do Botão de Dicas
 if (btnHint) {
     btnHint.addEventListener('click', () => {
-        // Bloqueia se o jogo acabou, se ainda não deu o 1º clique ou se acabaram as dicas
         if (gameOver || firstClick || hintsLeft <= 0) return;
         
         let safeCells = [];
         
-        // Procura por todas as casas seguras, fechadas e sem bandeira
         for (let r = 0; r < ROWS; r++) {
             for (let c = 0; c < COLS; c++) {
                 if (!board[r][c].isRevealed && !board[r][c].isBomb && !board[r][c].isFlagged) {
@@ -227,13 +243,11 @@ if (btnHint) {
             }
         }
 
-        // Se encontrou alguma, revela uma aleatória
         if (safeCells.length > 0) {
             const randomSafe = safeCells[Math.floor(Math.random() * safeCells.length)];
             revealCell(randomSafe.r, randomSafe.c);
             checkWin(); 
             
-            // Desconta a dica e atualiza o visual do botão
             hintsLeft--;
             btnHint.textContent = `💡 Dica (${hintsLeft})`;
             
@@ -245,6 +259,16 @@ if (btnHint) {
     });
 }
 
+// Lógica do Botão de Modo Bandeira (Mobile)
+if (btnFlag) {
+    btnFlag.addEventListener('click', () => {
+        flagMode = !flagMode;
+        btnFlag.classList.toggle('active', flagMode);
+        btnFlag.textContent = flagMode ? '🚩 Modo Bandeira: ON' : '🚩 Modo Bandeira: OFF';
+    });
+}
+
+// Sistema de Ranking LocalStorage
 function saveRanking() {
     let rankings = JSON.parse(localStorage.getItem('minesweeper_ranking')) || { easy: [], medium: [], hard: [] };
     
@@ -260,24 +284,33 @@ function updateRankingUI() {
     let rankings = JSON.parse(localStorage.getItem('minesweeper_ranking')) || { easy: [], medium: [], hard: [] };
     const currentRanking = rankings[currentDiff];
     
-    rankingList.innerHTML = '';
-    
-    if (currentRanking.length === 0) {
-        rankingList.innerHTML = '<li>Nenhum recorde salvo nesta dificuldade.</li>';
-        return;
-    }
+    if (rankingList) {
+        rankingList.innerHTML = '';
+        
+        if (currentRanking.length === 0) {
+            rankingList.innerHTML = '<li>Nenhum recorde salvo nesta dificuldade.</li>';
+            return;
+        }
 
-    currentRanking.forEach((time, index) => {
-        const li = document.createElement('li');
-        li.textContent = `${index + 1}º Lugar: ${time}s`;
-        rankingList.appendChild(li);
+        currentRanking.forEach((time, index) => {
+            const li = document.createElement('li');
+            li.textContent = `${index + 1}º Lugar: ${time}s`;
+            rankingList.appendChild(li);
+        });
+    }
+}
+
+// Event Listeners Globais
+if (diffSelect) {
+    diffSelect.addEventListener('change', (e) => {
+        currentDiff = e.target.value;
+        initGame(); 
     });
 }
 
-diffSelect.addEventListener('change', (e) => {
-    currentDiff = e.target.value;
-    initGame(); 
-});
+if (btnRestart) {
+    btnRestart.addEventListener('click', initGame);
+}
 
-btnRestart.addEventListener('click', initGame);
+// Start do Jogo
 initGame();
